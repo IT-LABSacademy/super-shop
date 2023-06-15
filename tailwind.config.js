@@ -5,7 +5,14 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx,vue}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        'bg': '#f8f8f8'
+      }
+    },
+    container: {
+      center: true
+    }
   },
   plugins: [],
 }
