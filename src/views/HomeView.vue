@@ -9,17 +9,50 @@
         <span>Add new</span>
       </button>
     </div>
-
     <div class="wrapper flex justify-center gap-4 flex-wrap mt-5">
-      <ProductCard v-for="item in 10" :key="item" />
+      <ProductCardSkeleton v-for="i in 8" v-if="!products.length" />
+      <ProductCard v-else v-for="item in products" :key="item.id" :product="item.data"
+        @delete="productToDelete = item.id" />
     </div>
+    <Popup :show="productToDelete">
+      <div class="actions flex gap-2">
+        <button class="btn py-2 text-sm bg-gray-600 w-1/2 text-white rounded"
+          @click="productToDelete = null">Cancel</button>
+        <button class="btn py-2 text-sm bg-red-600 w-1/2 text-white rounded">Delete</button>
+      </div>
+    </Popup>
   </main>
 </template>
 
 <script>
 import ProductCard from '../components/ProductCard.vue';
+import ProductCardSkeleton from '../components/ProductCard.skeleton.vue';
+import http from '../axios.config'
+import { useToast } from "vue-toastification";
+import Popup from '../components/Popup.vue';
 
 export default {
-  components: { ProductCard }
+  components: { ProductCard, ProductCardSkeleton, Popup },
+  data() {
+    return {
+      productToDelete: null,
+      products: [],
+      toast: useToast()
+    }
+  },
+  methods: {
+    async fetchProducts() {
+      const res = await http.get('/products.json')
+      const productList = [];
+
+      Object.keys(res.data).forEach((key) => {
+        productList.push({ id: key, data: res.data[key] });
+      });
+      this.products = productList
+    }
+  },
+  mounted() {
+    this.fetchProducts()
+  }
 }
 </script>

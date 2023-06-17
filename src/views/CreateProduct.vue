@@ -45,9 +45,10 @@
                 </p>
             </div>
             <div class="action flex justify-end">
-                <button class="btn px-5 py-2 text-white bg-blue-500 rounded">
-                    <i class="fas fa-plus mr-2"></i>
-                    <span>Create</span>
+                <button class="btn px-5 py-2 text-white bg-blue-500 rounded" :class="{ 'opacity-50': !isValid || loading }"
+                    :disabled="!isValid || loading">
+                    <i class="fas fa-plus mr-2" v-if="!loading"></i>
+                    <span>{{ loading ? 'Loading...' : 'Create' }}</span>
                 </button>
             </div>
         </form>
@@ -55,9 +56,14 @@
 </template>
 
 <script>
+import http from '../axios.config'
+import { useToast } from "vue-toastification";
+
 export default {
     data() {
         return {
+            loading: false,
+            toast: useToast(),
             errors: {
                 name: '',
                 description: '',
@@ -74,7 +80,10 @@ export default {
     },
     computed: {
         isValid() {
-            if (this.errors.name && this.errors.description && this.errors.price && this.errors.image) {
+            if (!this.errors.name && !this.errors.description && !this.errors.price && !this.errors.image) {
+                if (!this.product.name && !this.product.description && !this.product.price && !this.product.image) {
+                    return false
+                }
                 return true
             } else {
                 return false
@@ -122,8 +131,19 @@ export default {
         }
     },
     methods: {
-        createProduct() {
-            console.log(this.isValid);
+        async createProduct() {
+            if (!this.isValid) return
+            this.loading = true
+            const res = await http.post('/products.json', this.product)
+            this.loading = false
+            this.product = {
+                name: '',
+                description: '',
+                price: '',
+                image: ''
+            }
+            this.toast.success('Product has been created!')
+            this.$router.push({ name: 'home' })
         }
     }
 }
