@@ -17,9 +17,10 @@
     </div>
 
     <div class="wrapper flex justify-center gap-4 flex-wrap mt-5">
-      <ProductCardSkeleton v-for="i in 8" v-if="!products.length" />
-      <ProductCard v-else v-for="item in products" :key="item.id" :product="item.data" @delete="productToDelete = item.id"
-        @edit="$router.push({ name: 'edit-product', params: { id: item.id } })" @cart="addToCart(item.id, item.data)" />
+      <ProductCardSkeleton v-for="i in 8" v-if="!productStore.getProductList.length" />
+      <ProductCard v-else v-for="item in productStore.getProductList" :key="item.id" :product="item.data"
+        @delete="productToDelete = item.id" @edit="$router.push({ name: 'edit-product', params: { id: item.id } })"
+        @cart="addToCart(item.id, item.data)" />
     </div>
 
     <!-- modal -->
@@ -41,8 +42,13 @@
       <div class="wrapper p-5">
         <h2 class="text-2xl font-semibold mb-5">Cart</h2>
 
-        <div class="cart-item p-3 mb-2 shadow" v-for="item in cartItems" :key="item.cart_id">
-          {{ item.data.name }}
+        <div class="cart-item p-3 mb-2 shadow rounded flex justify-between items-center"
+          v-for="item in cartStore.getCartItems" :key="item.cart_id">
+          <p class="">{{ item.data.name }}</p>
+
+          <button class="btn text-red-500" @click="deleteFromCart(item.cart_id, item.data.name)">
+            <i class="fas fa-trash"></i>
+          </button>
         </div>
       </div>
     </CurtainPopup>
@@ -57,58 +63,49 @@ import { useToast } from "vue-toastification";
 import Popup from '../components/Popup.vue';
 import CurtainPopup from '../components/CurtainPopup.vue';
 
+import { useProductStore } from '../store/products'
+import { useCartStore } from '../store/cart'
+
 export default {
   components: { ProductCard, ProductCardSkeleton, Popup, CurtainPopup },
   data() {
     return {
+      productStore: useProductStore(),
+      cartStore: useCartStore(),
       productToDelete: null,
-      products: [],
-      cartItems: [],
       toast: useToast(),
       showCart: false,
     }
   },
   methods: {
-    async fetchProducts() {
-      const res = await http.get('/products.json')
-      const productList = [];
-
-      Object.keys(res.data).forEach((key) => {
-        productList.push({ id: key, data: res.data[key] });
-      });
-      this.products = productList
-    },
     async deleteProduct(id) {
       if (!id) return
-      await http.delete('/products/' + id + '.json')
+      await this.productStore.deleteProduct(id)
       this.productToDelete = null
       this.toast.success('Product has been deleted!')
-      this.fetchProducts()
+      this.productStore.fetchProducts()
     },
     async addToCart(id, product) {
-      const item = this.cartItems.find(product => product.product_id === id)
+      const item = this.cartStore.getCartItems.find(product => product.product_id === id)
       if (item) {
         this.toast.warning('Product already in the cart!')
         return
       }
-      const res = await http.post('/cart.json', { id: id, data: product })
+      await this.cartStore.addToCart(id, product)
       this.toast.success(product.name + ' - added to cart!')
-      this.fetchCartItems()
+      this.cartStore.fetchCartItems()
     },
-    async fetchCartItems() {
-      const res = await http.get('/cart.json')
-      const items = []
-      Object.keys(res.data).forEach((key) => {
-        items.push(
-          { cart_id: key, product_id: res.data[key].id, data: res.data[key].data }
-        );
-      });
-      this.cartItems = items
+    async deleteFromCart(id, productName) {
+      const name = productName
+      await this.cartStore.deleteFromCart(id)
+      this.toast.success(name + ' - removed from cart!')
+      this.showCart = false
+      await this.cartStore.fetchCartItems()
     }
   },
   mounted() {
-    this.fetchProducts()
-    this.fetchCartItems()
+    this.productStore.fetchProducts()
+    this.cartStore.fetchCartItems()
   }
 }
 </script>
